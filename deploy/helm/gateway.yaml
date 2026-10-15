@@ -27,6 +27,10 @@ spec:
           env:
             - name: BACKEND_BASE_URL
               value: http://llama-backend:8080
+            - name: CANARY_BACKEND_URL
+              value: http://llama-backend-canary:8080
+            - name: CANARY_WEIGHT
+              value: "0.05"
             - name: GATEWAY_MAX_CONCURRENCY
               value: "16"
           ports:

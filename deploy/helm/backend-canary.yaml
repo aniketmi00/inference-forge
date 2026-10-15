@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-backend-canary
+  namespace: inferenceforge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llama-backend-canary
+  template:
+    metadata:
+      labels:
+        app: llama-backend-canary
+    spec:
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: model-pvc
+      initContainers:
+        - name: download-model
+          image: curlimages/curl:8.12.0
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          command:
+            - sh
+            - -lc
+            - |
+              set -e
+              mkdir -p /models
+              if [ ! -f "/models/qwen2.5-0.5b-instruct-q4_k_m.gguf" ]; then
+                curl -fL "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf" -o "/models/qwen2.5-0.5b-instruct-q4_k_m.gguf"
+              fi
+          volumeMounts:
+            - name: models
+              mountPath: /models
+      containers:
+        - name: server
+          image: ghcr.io/ggml-org/llama.cpp:server
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 2Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          args:
+            - -m
+            - /models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8080"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: models
+              mountPath: /models
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-backend-canary
+  namespace: inferenceforge
+spec:
+  selector:
+    app: llama-backend-canary
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+
