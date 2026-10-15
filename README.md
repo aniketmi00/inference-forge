@@ -1,4 +1,4 @@
-# inference-forge
+# inference-forge [wip]
 
 in this repo, i build an llm inference engine from scratch, one tensor and one matmul at a time.
 
